@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Bat Art Fly — тату и аэрография в Петербурге</title>
+<script src="https://cdn.jsdelivr.net/npm/@vkontakte/vk-bridge@2.14.1/dist/browser.min.js"></script>
+<style>
+:root{--bg:#0d0d0f;--card:#17171a;--card2:#1f1f23;--line:#2c2c31;--text:#f5f5f6;--muted:#a3a3ad;--accent:#e11d48;--accent2:#fb7185;--ok:#22c55e}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 -apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.wrap{max-width:560px;margin:0 auto;padding:20px 16px 48px;min-height:100vh;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;color:var(--muted);font-size:14px}
+.brand{font-weight:700;color:var(--text);letter-spacing:.02em}
+.bar{height:4px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:22px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s}
+h1{font-size:28px;line-height:1.15;margin:8px 0 12px}
+h2{font-size:22px;line-height:1.2;margin:0 0 6px}
+p{margin:0 0 14px;color:var(--muted)}
+.hint{font-size:14px;margin-bottom:16px}
+.opts{display:grid;gap:10px}
+.opt{display:block;width:100%;text-align:left;padding:15px 16px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--text);font:inherit;cursor:pointer;transition:border-color .15s,background .15s}
+.opt:hover{border-color:var(--accent2)}
+.opt.sel{border-color:var(--accent);background:#2a1219}
+.opt small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.opt.big{padding:18px 16px;font-size:18px;font-weight:600}
+.btn{display:block;width:100%;padding:16px;border:0;border-radius:14px;background:var(--accent);color:#fff;font:600 17px/1.2 inherit;font-family:inherit;cursor:pointer;text-align:center;text-decoration:none}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:var(--card2);border:1px solid var(--line)}
+.btn:disabled{opacity:.5;cursor:default}
+.back{background:none;border:0;color:var(--muted);font:inherit;font-size:14px;cursor:pointer;padding:0}
+.perks{display:grid;gap:8px;margin:18px 0 22px;padding:0;list-style:none}
+.perks li{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.price{background:linear-gradient(135deg,#2a1219,#17171a);border:1px solid var(--accent);border-radius:18px;padding:20px;margin:6px 0 18px;transition:filter .4s}
+.price .sum{font-size:30px;font-weight:800;margin:4px 0}
+.price .meta{color:var(--muted);font-size:14px}
+.blur{filter:blur(9px);user-select:none}
+.bonus{background:var(--card);border:1px dashed var(--accent2);border-radius:14px;padding:14px;margin-bottom:18px;font-size:15px}
+label{display:block;font-size:14px;color:var(--muted);margin:0 0 6px}
+input[type=text],input[type=tel]{width:100%;padding:14px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text);font:inherit;margin-bottom:14px}
+input:focus{outline:none;border-color:var(--accent2)}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--muted);margin:4px 0 16px}
+.check input{margin-top:3px}
+.seg{display:flex;gap:8px;margin-bottom:14px}
+.seg button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--text);font:inherit;font-size:14px;cursor:pointer}
+.seg button.sel{border-color:var(--accent);background:#2a1219}
+.stack{display:grid;gap:10px}
+.ok{color:var(--ok);font-weight:600}
+.fine{font-size:12px;color:var(--muted);margin-top:14px}
+.fade{animation:f .25s ease}
+@keyframes f{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><span class="brand" id="brand"></span><span id="counter"></span></div>
+  <div class="bar"><i id="bar"></i></div>
+  <main id="app"></main>
+</div>
+
+<script>
+/* ===================== НАСТРОЙКИ — меняй только этот блок ===================== */
+const CONFIG = {
+  masterName: "Bat Art Fly",
+  city: "Санкт-Петербург",
+  vkLink: "batartfly",       // адрес сообщества ВК (для кнопки «Написать», vk.me/...)
+  vkGroupId: 243106177,      // числовой ID сообщества vk.com/batartfly
+  whatsapp: "",              // напр. "79990000000" — пусто, кнопки не будет
+  telegram: "",              // username без @ — пусто, кнопки не будет
+  webhook: "",               // URL Google Apps Script для заявок в Telegram + таблицу (см. ПЛАН)
+  vkPixelId: "",             // ID пикселя VK Ads
+  gateResult: true,          // true — цена видна после того, как оставят контакт
+  minPrice: 3000,
+  round: 500
+};
+
+/* ⚠️ Все цены ниже — ОРИЕНТИРЫ ДЛЯ СПб, замени своими.
+   min/max — базовая вилка, k — множитель, h — время, temp — «горячесть» заявки */
+const WHEN = {id:"when", q:"Когда хочешь сделать?", opts:[
+  {t:"В ближайшие 2 недели", temp:"🔥 горячий"},
+  {t:"В течение месяца", temp:"🟠 тёплый"},
+  {t:"Позже, пока присматриваюсь", temp:"🔵 холодный"}]};
+
+const FLOWS = {
+  tattoo: {
+    title: "Тату",
+    bonus: "🎁 Эскиз под тебя бесплатно + 10% скидка на первый сеанс, если запишешься в течение 72 часов",
+    steps: [
+      {id:"type", q:"Что планируешь?", opts:[
+        {t:"Первое тату", k:1},
+        {t:"Новое тату — у меня уже есть", k:1},
+        {t:"Перекрыть шрам / растяжки / ожог", s:"делаю аккуратно, часто за 1 сеанс", k:1.2},
+        {t:"Перекрыть старое тату", s:"cover-up", k:1.35},
+        {t:"Обновить / доработать старое", k:1.1}]},
+      {id:"style", q:"Какой стиль ближе?", hint:"Не уверен — выбирай последний вариант, подберём вместе", opts:[
+        {t:"Реализм чёрно-серый", s:"часы, черепа, портреты, животные", k:1.35},
+        {t:"Цветной реализм / персонажи", s:"герои игр, аниме, фильмов", k:1.5},
+        {t:"Графика / дотворк / орнамент", k:1.1},
+        {t:"Минимализм / тонкие линии / надпись", k:0.85},
+        {t:"Питерский флэш — готовый эскиз", s:"фиксированная цена", k:0.8},
+        {t:"Пока не знаю — нужна помощь", k:1.1}]},
+      {id:"size", q:"Примерный размер?", hint:"По самой длинной стороне", opts:[
+        {t:"до 5 см", s:"как монета", min:3000, max:5000, h:"до 1 часа"},
+        {t:"5–10 см", s:"как спичечный коробок", min:5000, max:9000, h:"1–2 часа"},
+        {t:"10–15 см", s:"как ладонь", min:9000, max:15000, h:"2–4 часа"},
+        {t:"15–20 см", s:"полпредплечья", min:14000, max:22000, h:"4–6 часов, 1 сеанс"},
+        {t:"20–30 см", s:"всё предплечье / икра", min:20000, max:35000, h:"1–2 сеанса"},
+        {t:"Рукав / спина целиком", min:60000, max:130000, h:"4–8 сеансов"}]},
+      {id:"place", q:"Место на теле?", opts:[
+        {t:"Предплечье / плечо", k:1},
+        {t:"Бедро / голень", k:1},
+        {t:"Спина / лопатка", k:1.05},
+        {t:"Кисть / пальцы / запястье", k:1.15},
+        {t:"Шея / за ухом", k:1.15},
+        {t:"Рёбра / живот / грудь", k:1.25}]},
+      {id:"sketch", q:"Эскиз уже есть?", opts:[
+        {t:"Да, готовый эскиз", k:1},
+        {t:"Есть референсы, нужно доработать", k:1},
+        {t:"Нет, нужен эскиз с нуля", s:"нарисую бесплатно при записи", k:1}]},
+      WHEN
+    ]
+  },
+  air: {
+    title: "Аэрография",
+    bonus: "🎁 Бесплатный эскиз прямо на фото твоей машины, мотоцикла или вещи — увидишь результат до начала работы",
+    steps: [
+      {id:"obj", q:"Что расписываем?", opts:[
+        {t:"Капот / дверь автомобиля", min:20000, max:45000, h:"3–7 дней"},
+        {t:"Борт авто целиком", min:45000, max:110000, h:"1–2 недели"},
+        {t:"Бак / пластик мотоцикла", min:12000, max:30000, h:"3–7 дней"},
+        {t:"Мотошлем", min:8000, max:20000, h:"3–5 дней"},
+        {t:"Картина / портрет на холсте", s:"отличный подарок", min:7000, max:15000, h:"5–10 дней"},
+        {t:"Одежда / кроссовки / куртка", min:4000, max:12000, h:"2–5 дней"},
+        {t:"Другое: гитара, скейт, стена, интерьер", min:5000, max:25000, h:"обсудим"}]},
+      {id:"cx", q:"Какой рисунок?", opts:[
+        {t:"Надпись / логотип", k:0.7},
+        {t:"Огонь, молнии, узоры, графика", k:1},
+        {t:"Сюжет: космос, пейзаж, персонаж", k:1.3},
+        {t:"Реализм / портрет человека или питомца", k:1.6}]},
+      {id:"idea", q:"Идея уже есть?", opts:[
+        {t:"Да, есть картинка", k:1},
+        {t:"Есть идея, нужно нарисовать эскиз", k:1},
+        {t:"Нет, придумайте что-то крутое", k:1.05}]},
+      WHEN
+    ]
+  },
+  gift: {
+    title: "Сертификат",
+    bonus: "🎄 Сертификат оформлю вручную — красиво, с подписью художницы. Успей к Новому году",
+    steps: [
+      {id:"for", q:"На что сертификат?", opts:[
+        {t:"На тату"},
+        {t:"На аэрографию / роспись вещи"},
+        {t:"Портрет на холсте в подарок"},
+        {t:"Пусть выберет сам(а)"}]},
+      {id:"nom", q:"Номинал?", opts:[
+        {t:"3 000 ₽", nom:3000}, {t:"5 000 ₽", nom:5000}, {t:"10 000 ₽", nom:10000},
+        {t:"15 000 ₽", nom:15000}, {t:"Другая сумма — обсудим", nom:0}]},
+      {id:"fmt", q:"Как оформить?", opts:[
+        {t:"Электронный — пришлю в ВК сегодня", temp:"🎁 сертификат"},
+        {t:"Открытка ручной работы", s:"заберёшь лично", temp:"🎁 сертификат"}]}
+    ]
+  }
+};
+/* ============================================================================== */
+
+const bridge = window.vkBridge ? (window.vkBridge.default || window.vkBridge) : null;
+const inVK = /vk_app_id=/.test(location.search);
+const st = {flow:null, step:-1, ans:{}, name:"", vkId:null, phone:"", via:"vk", done:false};
+const app = document.getElementById("app");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const rub = n => n.toLocaleString("ru-RU") + " ₽";
+const rnd = n => Math.max(CONFIG.minPrice, Math.round(n / CONFIG.round) * CONFIG.round);
+const F = () => FLOWS[st.flow];
+const picked = () => F().steps.map(s => ({s, o: s.opts[st.ans[s.id]]}));
+
+document.getElementById("brand").textContent = CONFIG.masterName;
+
+if (bridge) {
+  bridge.send("VKWebAppInit").catch(()=>{});
+  if (inVK) bridge.send("VKWebAppGetUserInfo").then(u => { st.name = u.first_name || ""; st.vkId = u.id; }).catch(()=>{});
+}
+if (CONFIG.vkPixelId) {
+  window._tmr = window._tmr || [];
+  _tmr.push({id: CONFIG.vkPixelId, type: "pageView", start: Date.now()});
+  const s = document.createElement("script"); s.async = true; s.src = "https://top-fwz1.mail.ru/js/code.js";
+  document.head.appendChild(s);
+}
+function goal(name){ if (CONFIG.vkPixelId && window._tmr) _tmr.push({type:"reachGoal", id:CONFIG.vkPixelId, goal:name}); }
+
+function calc(){
+  const p = picked();
+  if (st.flow === "gift") {
+    const nom = p.find(x => x.s.id === "nom").o.nom;
+    return {label: "Сертификат", sum: nom ? rub(nom) : "сумма на твой выбор", meta: "действует 6 месяцев · можно подарить на любую работу"};
+  }
+  const base = p.find(x => x.o.min).o;
+  const k = p.reduce((m, x) => m * (x.o.k || 1), 1);
+  return {label: "Ориентировочно", sum: `${rub(rnd(base.min * k))} – ${rub(rnd(base.max * k))}`,
+          meta: `⏱ ${base.h} · точная цена — после эскиза`};
+}
+function temp(){ const t = picked().find(x => x.o.temp); return t ? t.o.temp : ""; }
+function summary(){
+  const r = calc();
+  return `Заявка: ${F().title} (${temp()})\nИмя: ${st.name}\n` +
+    (st.vkId ? `VK: vk.com/id${st.vkId}\n` : "") +
+    (st.phone ? `Контакт: ${st.phone} (${st.via})\n` : "") +
+    picked().map(x => `${x.s.q} — ${x.o.t}`).join("\n") + `\nРасчёт: ${r.sum}`;
+}
+function progress(){
+  const total = st.flow ? F().steps.length + 2 : 1;
+  const cur = st.flow ? st.step + 2 : 0;
+  document.getElementById("bar").style.width = Math.min(100, cur / total * 100) + "%";
+  document.getElementById("counter").textContent = st.flow && st.step < F().steps.length ? `${st.step + 1} / ${F().steps.length}` : "";
+}
+
+function render(){
+  progress();
+  if (!st.flow) return intro();
+  if (st.step < F().steps.length) return question();
+  return result();
+}
+
+function intro(){
+  app.innerHTML = `<div class="fade">
+    <h1>Рисую на коже, металле и холсте</h1>
+    <p>Тату-мастер и художница-аэрографист, ${esc(CONFIG.city)}. Ответь на 4–6 вопросов — сразу покажу стоимость и подарю эскиз.</p>
+    <div class="opts">
+      <button class="opt big" data-f="tattoo">🖤 Тату<small>реализм, цветные персонажи, перекрытие шрамов</small></button>
+      <button class="opt big" data-f="air">🎨 Аэрография<small>авто, мото, шлемы, картины, вещи</small></button>
+      <button class="opt big" data-f="gift">🎁 Подарочный сертификат<small>к Новому году — успей до 31 декабря</small></button>
+    </div>
+    <ul class="perks">
+      <li>✍️ Эскиз бесплатно — сначала увидишь, потом решаешь</li>
+      <li>🧼 Одноразовые иглы, стерильно, плёнка для заживления</li>
+    </ul>
+    <p class="fine">Ни к чему не обязывает · ответ в течение часа</p>
+  </div>`;
+  app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { st.flow = b.dataset.f; st.step = 0; st.ans = {}; goal("quiz_start_" + st.flow); render(); });
+}
+
+function question(){
+  const s = F().steps[st.step];
+  app.innerHTML = `<div class="fade">
+    <h2>${esc(s.q)}</h2>
+    ${s.hint ? `<p class="hint">${esc(s.hint)}</p>` : `<div style="height:12px"></div>`}
+    <div class="opts">${s.opts.map((o,i) => `<button class="opt${st.ans[s.id]===i?" sel":""}" data-i="${i}">${esc(o.t)}${o.s?`<small>${esc(o.s)}</small>`:""}</button>`).join("")}</div>
+    <div style="margin-top:18px"><button class="back" id="back">← Назад</button></div>
+  </div>`;
+  app.querySelectorAll(".opt").forEach(b => b.onclick = () => {
+    st.ans[s.id] = +b.dataset.i;
+    b.classList.add("sel");
+    setTimeout(() => { st.step++; if (st.step === F().steps.length) goal("quiz_finish"); render(); }, 160);
+  });
+  document.getElementById("back").onclick = () => { if (st.step === 0) st.flow = null; else st.step--; render(); };
+}
+
+function result(){
+  const r = calc();
+  const hidden = CONFIG.gateResult && !st.done && st.flow !== "gift";
+  app.innerHTML = `<div class="fade">
+    <h2>${st.done ? "Готово! Заявка у мастера ✅" : st.flow === "gift" ? "Почти готово 🎁" : "Расчёт готов 🔥"}</h2>
+    <p>${st.done ? "Напишу тебе в ближайшее время, обычно в течение часа." : st.flow === "gift" ? "Куда прислать сертификат и реквизиты для оплаты?" : hidden ? "Куда отправить расчёт и бесплатный эскиз?" : "Ориентировочная стоимость:"}</p>
+    <div class="price ${hidden ? "blur" : ""}">
+      <div class="meta">${esc(r.label)}</div>
+      <div class="sum">${esc(r.sum)}</div>
+      <div class="meta">${esc(r.meta)}</div>
+    </div>
+    <div class="bonus">${esc(F().bonus)}</div>
+    <div id="tail"></div>
+  </div>`;
+  st.done ? thanks() : form();
+}
+
+function form(){
+  const tail = document.getElementById("tail");
+  const ph = st.via === "telegram" ? "@ник или телефон" : st.via === "vk" ? "Ссылка на страницу ВК или телефон" : "+7 ___ ___-__-__";
+  tail.innerHTML = `<form id="f">
+    <label for="n">Как тебя зовут?</label>
+    <input type="text" id="n" required maxlength="40" value="${esc(st.name)}" autocomplete="given-name">
+    ${st.vkId ? `<p class="hint">Отвечу в личные сообщения ВК 👌 Телефон — по желанию:</p>` : `<label>Где удобнее получить ответ?</label>
+    <div class="seg">${["vk","telegram","whatsapp"].map(v=>`<button type="button" data-v="${v}" class="${st.via===v?"sel":""}">${{vk:"ВКонтакте",telegram:"Telegram",whatsapp:"WhatsApp"}[v]}</button>`).join("")}</div>`}
+    <input type="${st.via==="telegram"&&!st.vkId?"text":"tel"}" id="ph" ${st.vkId?"":"required"} maxlength="60" placeholder="${st.vkId ? "+7 ___ ___-__-__" : ph}" value="${esc(st.phone)}">
+    <label class="check"><input type="checkbox" id="agree" required checked> <span>Согласен(на) на обработку персональных данных для связи по заявке</span></label>
+    <button class="btn" id="send">${st.flow === "gift" ? "Оформить сертификат" : "Получить расчёт и эскиз"}</button>
+  </form>`;
+  tail.querySelectorAll(".seg button").forEach(b => b.onclick = () => {
+    st.name = document.getElementById("n").value; st.phone = document.getElementById("ph").value; st.via = b.dataset.v; form();
+  });
+  document.getElementById("f").onsubmit = submit;
+}
+
+async function submit(e){
+  e.preventDefault();
+  st.name = document.getElementById("n").value.trim();
+  st.phone = document.getElementById("ph").value.trim();
+  if (st.vkId) st.via = "vk";
+  document.getElementById("send").disabled = true;
+  const lead = {
+    date: new Date().toISOString(), flow: F().title, temp: temp(), name: st.name,
+    vk: st.vkId ? `https://vk.com/id${st.vkId}` : "", contact: st.phone, via: st.via, price: calc().sum,
+    answers: Object.fromEntries(picked().map(x => [x.s.q, x.o.t])),
+    utm: location.search.replace(/^\?/, ""), summary: summary()
+  };
+  if (CONFIG.webhook) {
+    try { await fetch(CONFIG.webhook, {method:"POST", mode:"no-cors", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify(lead)}); } catch(_){}
+  }
+  if (bridge && inVK && CONFIG.vkGroupId) {
+    try { await bridge.send("VKWebAppAllowMessagesFromGroup", {group_id: CONFIG.vkGroupId, key: st.flow}); } catch(_){}
+  }
+  goal("lead"); goal("lead_" + st.flow);
+  st.done = true;
+  result();
+}
+
+function thanks(){
+  const text = summary();
+  const btns = [`<button class="btn" id="vk">Написать мастеру в ВК</button>`];
+  if (CONFIG.telegram) btns.push(`<a class="btn ghost" target="_blank" rel="noopener" href="https://t.me/${encodeURIComponent(CONFIG.telegram)}">Написать в Telegram</a>`);
+  if (CONFIG.whatsapp) btns.push(`<a class="btn ghost" target="_blank" rel="noopener" href="https://wa.me/${CONFIG.whatsapp}?text=${encodeURIComponent(text)}">Написать в WhatsApp</a>`);
+  document.getElementById("tail").innerHTML = `<p>Хочешь быстрее? Напиши сам: по кнопке расчёт скопируется — просто вставь его в сообщение${st.flow === "air" ? " и приложи фото машины / вещи" : ""}.</p>
+    <div class="stack">${btns.join("")}</div>
+    <p class="fine" id="cp"></p>`;
+  document.getElementById("vk").onclick = async () => {
+    try { await navigator.clipboard.writeText(text); document.getElementById("cp").innerHTML = '<span class="ok">Расчёт скопирован — вставь его в чат</span>'; } catch(_){}
+    window.open(`https://vk.me/${CONFIG.vkLink}`, "_blank");
+  };
+}
+
+render();
+</script>
+</body>
+</html>
